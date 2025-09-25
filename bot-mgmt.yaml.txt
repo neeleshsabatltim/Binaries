@@ -1,0 +1,124 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: #{repository}#
+  labels:
+    app: #{repository}#
+    version: v1.1
+    networkrole: core
+spec:
+  selector:
+    matchLabels:
+      app: #{repository}#
+      version: v1.1
+      networkrole: core
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: #{repository}#
+        version: v1.1
+        networkrole: core
+    spec:
+      containers:
+        - name: #{repository}#
+          image: ainativedemorepo.azurecr.io/#{repository}#:#{versionid}#
+          ports:
+            - containerPort: 8443
+          env:
+#            - name: AZURE_OPEN_AI_AUTH_TOKEN
+#              valueFrom:
+#                secretKeyRef:
+#                  name: azure-open-ai
+#                  key: key1
+#            - name: AZURE_OPEN_AI_HOSTNAME
+#              value: "https://ainativedemoopenai.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2025-01-01-preview"
+            - name: swagger-ui-server
+              value: "https://ainativeops-demo.ltimindtree.info/s/bot-management/"
+            - name: ACCESS-CONTROL-URL
+              value: "https://ai-native-svc-access-control-management-service/access-control-management"
+            - name: AZURE_OPEN_AI_HOSTNAME
+              value: "https://ainativedemoopenai.openai.azure.com/openai/deployments/gpt-4/chat/completions?api-version=2025-01-01-preview"
+            - name: ARANGODB-URL
+              value: "ainative-arangodb"
+            - name: ARANGODB-PORT
+              value: "8529"
+            - name: SERVICE_NAME
+              value: "https://ai-native-svc-snow-orchestrator-service"
+            - name: CLAMAV_SCAN_ENDPOINT
+              value: "https://ai-native-clamav-rest-nginx-service:8443/scan"
+            - name: SSA_BASE_PATH
+              value: "https://ai-native-svc-secure-shield-agent-service/secure-shield-agent"
+            - name: ARANGODB-USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ainativedevops-datawarehouse-usercreds
+                  key: BOT-TEAM-USERNAME
+            - name: ARANGODB-PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ainativedevops-datawarehouse-usercreds
+                  key: BOT-TEAM-PASSWORD
+            - name: ARANGODB-DATABASE
+              value: "tenant1"
+            - name: ARANGODB-SSLENABLED
+              value: "true"
+            - name: ARANGODB-DOCUMENT-COLLECTIONS
+              value: "bot,bot_execution,bot_forms,bot_runbooks,bot_type"
+            - name: ARANGODB-EDGE-COLLECTIONS
+              value: "bot_automates,bot_executed_by,bot_execution_instance,bot_form_version,bot_runbook_version,bot_solves,bot_tool_type,role_has_access_to_bot"
+            - name: JAVA_OPTS
+              value: "-Djavax.net.ssl.trustStore=/ainative-ssl/ainative-internal-truststore.jks -Djavax.net.ssl.trustStorePassword=ZmFmZDQzMDNkZjZmMjg2ZTk3MWNhY2Qy"
+            - name: SSL_TRUSTSTORE_PATH
+              value: "/ainative-ssl/ainative-internal-truststore.jks"
+            - name: VOLUME_MOUNT_PATH
+              value: "/bot-management/bots"
+            - name: SSL_TRUSTSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ainative-internal-truststore
+                  key: password
+            - name: KEYSTORE_PATH
+              value: "/ainative-ssl/keystore/ai-native-svc-bot-mgmt-service-keystore.jks"
+            - name: KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ai-native-svc-bot-mgmt-service-keystore
+                  key: keystore-password
+            - name: AZURE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: azure-openai-config
+                  key: AZURE-CLIENT-ID
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: azure-openai-config
+                  key: AZURE-CLIENT-SECRET
+          volumeMounts:
+            - name: internal-truststore
+              mountPath: "/ainative-ssl/"
+            - name: bot-management-bots
+              mountPath: "/bot-management/bots"
+            - name: keystore
+              mountPath: "/ainative-ssl/keystore"
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+      volumes:
+        - name: internal-truststore
+          secret:
+            secretName: ainative-internal-truststore
+        - name: bot-management-bots
+          persistentVolumeClaim:
+            claimName: bot-management-bots-pvc
+        - name: keystore
+          secret:
+            secretName: ai-native-svc-bot-mgmt-service-keystore
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "global-secrets-spc"
