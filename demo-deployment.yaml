@@ -1,0 +1,94 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: #{repository}#
+  labels:
+    app: #{repository}#
+    version: v1.1
+    networkrole: core
+spec:
+  selector:
+    matchLabels:
+      app: #{repository}#
+      version: v1.1
+      networkrole: core
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: #{repository}#
+        version: v1.1
+        networkrole: core
+    spec:
+      containers:
+        - name: #{repository}#
+          image: ainativedemorepo.azurecr.io/#{repository}#:#{versionid}#
+          ports:
+            - containerPort: 8443
+          env:
+            - name: swagger-ui-server
+              value: "https://ainativeops-demo.ltimindtree.info/s/service-portfolio/"
+            - name: ACCESS-CONTROL-URL
+              value: "https://ai-native-svc-access-control-management-service/access-control-management"
+            - name: CLAMAV_SCAN_ENDPOINT
+              value: "https://ai-native-clamav-rest-nginx-service:8443/scan"
+            - name: ARANGODB-URL
+              value: "ainative-arangodb"
+            - name: ARANGODB-PORT
+              value: "8529"
+            - name: ARANGODB-USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ainativedevops-datawarehouse-usercreds
+                  key: CORE-CATALYST-TEAM-USERNAME
+            - name: ARANGODB-PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ainativedevops-datawarehouse-usercreds
+                  key: CORE-CATALYST-TEAM-PASSWORD
+            - name: ARANGODB-DATABASE
+              value: "tenant1"
+            - name: ARANGODB-SSLENABLED
+              value: "true"
+            - name: ARANGODB-DOCUMENT-COLLECTIONS
+              value: "sp_domain,sp_technology,sp_deliverable,sp_process,sp_subprocess,sp_task,sp_issue_category,sp_technology_map,sp_deliverable_map,sp_process_map,sp_subprocess_map,sp_task_map,sp_issue_category_map"
+            - name: ARANGODB-EDGE-COLLECTIONS
+              value: "sp_contains"
+            - name: JAVA_OPTS
+              value: "-Djavax.net.ssl.trustStore=/ainative-ssl/ainative-internal-truststore.jks -Djavax.net.ssl.trustStorePassword=ZmFmZDQzMDNkZjZmMjg2ZTk3MWNhY2Qy"
+            - name: SSL_TRUSTSTORE_PATH
+              value: "/ainative-ssl/ainative-internal-truststore.jks"
+            - name: SSL_TRUSTSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ainative-internal-truststore
+                  key: password
+            - name: KEYSTORE_PATH
+              value: "/ainative-ssl/keystore/ai-native-svc-service-portfolio-service-keystore.jks"
+            - name: KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ai-native-svc-service-portfolio-service-keystore
+                  key: keystore-password
+          volumeMounts:
+            - name: internal-truststore
+              mountPath: "/ainative-ssl/"
+            - name: keystore
+              mountPath: "/ainative-ssl/keystore"
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+      volumes:
+        - name: internal-truststore
+          secret:
+            secretName: ainative-internal-truststore
+        - name: keystore
+          secret:
+            secretName: ai-native-svc-service-portfolio-service-keystore
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "global-secrets-spc"
