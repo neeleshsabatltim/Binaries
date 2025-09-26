@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-native-svc-servicenow-itsm
+  labels:
+    app: ai-native-svc-servicenow-itsm
+    version: v1.1
+    networkrole: agent
+spec:
+  selector:
+    matchLabels:
+      app: ai-native-svc-servicenow-itsm
+      version: v1.1
+      networkrole: agent
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ai-native-svc-servicenow-itsm
+        version: v1.1
+        networkrole: agent
+    spec:
+      containers:
+        - name: ai-native-svc-servicenow-itsm
+          image: blueversedemoregistry.azurecr.io/ai-native-svc-servicenow-itsm:demo-1.0.1118
+          ports:
+            - containerPort: 8443
+          env:
+             - name: SERVICE_BASE_URL
+               value: "https://lticoe8.service-now.com"
+             - name: TOOL_MNG_ID
+               value: "128517029"
+             - name: SSA_BASE_PATH
+               value: "https://ai-native-svc-secure-shield-agent-service/secure-shield-agent"
+             - name: BASIC_AUTH_URL
+               value: "https://ai-native-svc-tool-management-service/tool-management/service"
+             - name: URGENCY_MAPPING
+               value: "1:high,2:medium,3:low"
+             - name: IMPACT_MAPPING
+               value: "1:high,2:medium,3:low,4:moderate,5:extensive,6:minor"
+             - name: STATE_MAPPING
+               value: "1:New,2:In Progress,3:On Hold,6:Resolved,7:Closed,8:Cancelled,9:Awaiting External,10:Work In Progress,11:Open,12:Awaiting User Info"
+             - name: PRIORITY_MAPPING
+               value: "1:3 - Moderate,2:4 - Low,3:5 - Planning,4:4 - Low,5:5- Planning,6:P1,7:P2,8:P3,9:P2 - High,10:P3 - Moderate,11:P1 - Critical"
+             - name: FIELDS_TO_KEEP
+               value: "type,short_description,priority,category,impact,description,assignment_group,urgency"
+             - name: AZURE_OPEN_AI_HOSTNAME
+               value: "https://blueverse-ops-demo.openai.azure.com/openai/deployments/gpt-4/chat/completions?api-version=2025-01-01-preview"
+             - name: MANDATORY_FIELDS
+               value: "short_description"
+             - name: AUTH_URL
+               value: "https://ai-native-svc-access-control-management-service/access-control-management/service/user/module/AIAPP003/permission"
+             - name: swagger-ui-server
+               value: "https://blueverse-ops-demo.ltimindtree.info/s/servicenow-itsm/"
+             - name: ARANGODB-URL
+               value: "ainative-arangodb"
+             - name: ARANGODB-PORT
+               value: "8529"
+             - name: ARANGODB-USERNAME
+               valueFrom:
+                 secretKeyRef:
+                   key: BOT-TEAM-USERNAME
+                   name: ainativedemoops-datawarehouse-usercreds
+             - name: ARANGODB-PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   key: BOT-TEAM-PASSWORD
+                   name: ainativedemoops-datawarehouse-usercreds
+             - name: ARANGODB-DATABASE
+               value: "tenant1"
+             - name: ARANGODB-SSLENABLED
+               value: "true"
+             - name: ARANGODB-DOCUMENT-COLLECTIONS
+               value: "dms_file,dms_file_version,dms_folder"
+             - name: ARANGODB-EDGE-COLLECTIONS
+               value: "dms_contains"
+             - name: JAVA_OPTS
+               value: "-Djavax.net.ssl.trustStore=/ainative-ssl/ainative-internal-truststore.jks -Djavax.net.ssl.trustStorePassword=ZmFmZDQzMDNkZjZmMjg2ZTk3MWNhY2Qy"
+             - name: SSL_TRUSTSTORE_PATH
+               value: "/ainative-ssl/ainative-internal-truststore.jks"
+             - name: SSL_TRUSTSTORE_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   name: ainative-internal-truststore
+                   key: password
+             - name: SERVICENOW_USERNAME
+               valueFrom:
+                 secretKeyRef:
+                   name: ai-native-servicenow-itsm
+                   key: username
+             - name: SERVICENOW_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   name: ai-native-servicenow-itsm
+                   key: password 
+             - name: KEYSTORE_PATH
+               value: "/ainative-ssl/keystore/ai-native-svc-servicenow-itsm-service-keystore.jks"
+             - name: KEYSTORE_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   name: ai-native-svc-servicenow-itsm-service-keystore
+                   key: keystore-password
+             - name: AZURE_CLIENT_ID
+               valueFrom:
+                 secretKeyRef:
+                   name: azure-openai-config
+                   key: AZURE-CLIENT-ID
+             - name: AZURE_CLIENT_SECRET
+               valueFrom:
+                 secretKeyRef:
+                   name: azure-openai-config
+                   key: AZURE-CLIENT-SECRET
+             - name : AWS_REGION
+               value : "us-east-1"
+ 
+             - name : AWS_MODEL_NAME
+               value : "us.anthropic.claude-sonnet-4-20250514-v1:0"
+ 
+             - name : AWS_ACCESS_KEY_ID
+               value : "AKIA2OONNWQL2LDEX35L"
+ 
+             - name : AWS_SECRET_ACCESS_KEY
+               value : "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"
+ 
+             - name : PROVIDER_TYPE
+               value : "azure"
+ 
+                     
+          volumeMounts:
+             - name: internal-truststore
+               mountPath: "/ainative-ssl/"
+             - name: keystore
+               mountPath: "/ainative-ssl/keystore"
+                 # - name: secrets-store-inline
+                 # mountPath: "/mnt/secrets-store"
+                 # readOnly: true
+      volumes:
+         - name: internal-truststore
+           secret:
+             secretName: ainative-internal-truststore
+         - name: keystore
+           secret:
+             secretName: ai-native-svc-servicenow-itsm-service-keystore
+               # - name: secrets-store-inline
+               # csi:
+               # driver: secrets-store.csi.k8s.io
+               # readOnly: true
+               # volumeAttributes:
+               # secretProviderClass: "global-secrets-spc"
